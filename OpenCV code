@@ -1,0 +1,84 @@
+let src = cv.imread('canvasInput');
+let gray = new cv.Mat();
+cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+
+let facesLeft = new cv.RectVector();
+let facesRight = new cv.RectVector();
+let faceCascade = new cv.CascadeClassifier();
+faceCascade.load('haarcascade_frontalface_default.xml');
+
+// detect faces on the left
+let msize = new cv.Size(0, 0);
+let leftRegion = new cv.Rect(0, 0, src.cols / 2, src.rows);
+let leftGray = gray.roi(leftRegion);
+faceCascade.detectMultiScale(leftGray, facesLeft, 1.1, 3, 0, msize, msize);
+leftGray.delete();
+
+// detect faces on the right
+let rightRegion = new cv.Rect(src.cols / 2, 0, src.cols / 2, src.rows);
+let rightGray = gray.roi(rightRegion);
+faceCascade.detectMultiScale(rightGray, facesRight, 1.1, 3, 0, msize, msize);
+rightGray.delete();
+
+// Process each detected face on the left
+for (let i = 0; i < facesLeft.size(); ++i) {
+    let currentFaceLeft = facesLeft.get(i);
+
+    // Draw rectangle around the left face
+    let point1 = new cv.Point(currentFaceLeft.x, currentFaceLeft.y);
+    let point2 = new cv.Point(currentFaceLeft.x + currentFaceLeft.width, currentFaceLeft.y + currentFaceLeft.height);
+    cv.rectangle(src, point1, point2, [255, 0, 0, 255]);
+
+    // Output "shim" on the left face
+    let textShimPoint = new cv.Point(currentFaceLeft.x, currentFaceLeft.y - 10);
+    cv.putText(src, 'shim', textShimPoint, cv.FONT_HERSHEY_SIMPLEX, 0.5, [255, 255, 255, 255]);
+
+    // Find the most similar face on the right
+    let mostSimilarFaceIndex = findMostSimilarFace(currentFaceLeft, facesRight);
+
+    if (mostSimilarFaceIndex !== -1) {
+        let currentFaceRight = facesRight.get(mostSimilarFaceIndex);
+
+        // Draw rectangle around the right face
+        let point1Right = new cv.Point(currentFaceRight.x, currentFaceRight.y);
+        let point2Right = new cv.Point(currentFaceRight.x + currentFaceRight.width, currentFaceRight.y + currentFaceRight.height);
+        cv.rectangle(src, point1Right, point2Right, [255, 0, 0, 255]);
+
+        // Output "shim" on the right face
+        let textShimPointRight = new cv.Point(currentFaceRight.x, currentFaceRight.y - 10);
+        cv.putText(src, 'shim', textShimPointRight, cv.FONT_HERSHEY_SIMPLEX, 0.5, [255, 255, 255, 255]);
+
+        // Detect emotion on the right face
+        let emotion = detectEmotion(gray.roi(currentFaceRight));
+
+        // Output the detected emotion below the right face
+        let textEmotionPoint = new cv.Point(currentFaceRight.x, currentFaceRight.y + currentFaceRight.height + 15);
+        cv.putText(src, emotion, textEmotionPoint, cv.FONT_HERSHEY_SIMPLEX, 0.5, [255, 255, 255, 255]);
+    }
+}
+
+// Display the output image
+cv.imshow('canvasOutput', src);
+
+// Clean up resources
+src.delete();
+gray.delete();
+faceCascade.delete();
+facesLeft.delete();
+facesRight.delete();
+
+// Function to find the most similar face on the right
+function findMostSimilarFace(leftFace, facesRight) {
+    // Implement your similarity comparison logic here
+    // For simplicity, this function returns the index of the first face on the right
+    // Replace this with your actual comparison logic
+    return facesRight.size() > 0 ? 0 : -1;
+}
+
+// Function to detect emotion (replace this with your emotion recognition logic)
+function detectEmotion(faceROI) {
+    // Placeholder logic, replace with your actual emotion detection code
+    // For demonstration purposes, this function always returns "Happy"
+    return "Happy";
+}
+
